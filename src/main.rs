@@ -1,12 +1,10 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
-    sprite::MaterialMesh2dBundle,
 };
 
-// const SOME_COLOR: Color = Color::srgb(0.99, 0.24, 0.71);
 const SPEED: f32 = 5.;
-// const CIRCLE_DIAMETER: f32 = 5.;
+const ROTATIONAL_SPEED: f32 = 0.02;
 const SCREEN_WIDTH: f32 = 640.;
 const SCREEN_HEIGHT: f32 = 480.;
 const NUM_COLS: usize = 24;
@@ -125,8 +123,7 @@ impl Me {
         }
     }
 
-    fn rotate(&mut self, deg: i32) {
-        let rad = (deg as f32).to_radians();
+    fn rotate(&mut self, rad: f32) {
         let cos: f32 = f32::cos(rad);
         let sin: f32 = f32::sin(rad);
         self.direction = Vec2::new(
@@ -137,13 +134,6 @@ impl Me {
             cos * self.plane.x + -sin * self.plane.y,
             sin * self.plane.x + cos * self.plane.y,
         );
-        //println!(
-        //    "{}",
-        //    f32::acos(
-        //        self.direction.dot(self.plane) / (self.direction.length() * self.plane.length())
-        //    )
-        //    .to_degrees()
-        //);
     }
 
     fn forward(&mut self, time_delta: f32) {
@@ -256,12 +246,86 @@ fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time:
         me.backward(time.delta_seconds())
     }
     if key.pressed(KeyCode::KeyJ) || key.pressed(KeyCode::ArrowLeft) {
-        me.rotate(1)
+        me.rotate(ROTATIONAL_SPEED);
     }
     if key.pressed(KeyCode::KeyL) || key.pressed(KeyCode::ArrowRight) {
-        me.rotate(-1)
+        me.rotate(-ROTATIONAL_SPEED);
     }
 }
+
+// fn cast_ray() {
+//     let screen_center = SCREEN_WIDTH / 2.;
+//     let camera_x = ((screen_center * 2.) / SCREEN_WIDTH) - 1.;
+//     let ray_direction = me.direction + me.plane * camera_x;
+//     // position of the ray on the grid
+//     let mut ray_pos = Vec2::floor(me.position);
+//     let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
+//     let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
+//     let step_x: i32;
+//     let step_y: i32;
+//     let mut dist_x: f32;
+//     let mut dist_y: f32;
+//     let mut hit = 0;
+//
+//     if ray_direction.x < 0. {
+//         step_x = -1;
+//         // this calculates how far the ray travels when going to the next -column
+//         dist_x = (me.position.x - ray_pos.x) * ray_dist_1_x;
+//     } else {
+//         step_x = 1;
+//         // this calculates how far the ray travels when going to the next +column
+//         dist_x = (ray_pos.x + 1.0 - me.position.x) * ray_dist_1_x;
+//     }
+//     if ray_direction.y < 0. {
+//         step_y = -1;
+//         dist_y = (me.position.y - ray_pos.y) * ray_dist_1_y;
+//     } else {
+//         step_y = 1;
+//         dist_y = (ray_pos.y + 1.0 - me.position.y) * ray_dist_1_y;
+//     }
+//
+//     // println!("{}", grid);
+//     // println!("initial_dist_x: {}", initial_dist_x);
+//     // println!("initial_dist_y: {}", initial_dist_y);
+//     let mut side: i32 = 0;
+//     while hit == 0 {
+//         if dist_x < dist_y {
+//             dist_x += ray_dist_1_y;
+//             ray_pos.x += step_x as f32;
+//             side = 0;
+//         } else {
+//             dist_y += ray_dist_1_y;
+//             ray_pos.y += step_y as f32;
+//             side = 1;
+//         }
+//         if grid.0[ray_pos.y as usize][ray_pos.x as usize] > 0 {
+//             hit = 1;
+//         }
+//     }
+//     println!("hit! x: {} y: {} side: {}", ray_pos.x, ray_pos.y, side);
+//     let mut perp_wall_dist: f32 = 0.;
+//     if side == 0 {
+//         perp_wall_dist += dist_x - ray_dist_1_x;
+//     } else {
+//         perp_wall_dist += dist_y - ray_dist_1_y;
+//     };
+//     let line_height: f32 = SCREEN_HEIGHT / perp_wall_dist;
+//     let mut line_start = -(line_height + SCREEN_HEIGHT) / 2.;
+//     if line_start < 0. {
+//         line_start = 0.
+//     };
+//     let mut line_end = (line_height + SCREEN_HEIGHT) / 2.;
+//     if line_end > SCREEN_HEIGHT {
+//         line_end = SCREEN_HEIGHT - 1.
+//     };
+//
+//     println!("start: {}, end: {}", line_start, line_end);
+//     gz.line_2d(
+//         Vec2::new(camera_x * SCREEN_WIDTH, line_start),
+//         Vec2::new(camera_x * SCREEN_WIDTH, line_end),
+//         Color::WHITE,
+//     )
+// }
 
 fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
     let Ok(me) = me.get_single() else { return };
@@ -333,77 +397,6 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
             Color::WHITE,
         )
     }
-    // let screen_center = SCREEN_WIDTH / 2.;
-    // let camera_x = ((screen_center * 2.) / SCREEN_WIDTH) - 1.;
-    // let ray_direction = me.direction + me.plane * camera_x;
-    // // position of the ray on the grid
-    // let mut ray_pos = Vec2::floor(me.position);
-    // let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
-    // let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
-    // let step_x: i32;
-    // let step_y: i32;
-    // let mut dist_x: f32;
-    // let mut dist_y: f32;
-    // let mut hit = 0;
-
-    // if ray_direction.x < 0. {
-    //     step_x = -1;
-    //     // this calculates how far the ray travels when going to the next -column
-    //     dist_x = (me.position.x - ray_pos.x) * ray_dist_1_x;
-    // } else {
-    //     step_x = 1;
-    //     // this calculates how far the ray travels when going to the next +column
-    //     dist_x = (ray_pos.x + 1.0 - me.position.x) * ray_dist_1_x;
-    // }
-    // if ray_direction.y < 0. {
-    //     step_y = -1;
-    //     dist_y = (me.position.y - ray_pos.y) * ray_dist_1_y;
-    // } else {
-    //     step_y = 1;
-    //     dist_y = (ray_pos.y + 1.0 - me.position.y) * ray_dist_1_y;
-    // }
-
-    // // println!("{}", grid);
-    // // println!("initial_dist_x: {}", initial_dist_x);
-    // // println!("initial_dist_y: {}", initial_dist_y);
-    // let mut side: i32 = 0;
-    // while hit == 0 {
-    //     if dist_x < dist_y {
-    //         dist_x += ray_dist_1_y;
-    //         ray_pos.x += step_x as f32;
-    //         side = 0;
-    //     } else {
-    //         dist_y += ray_dist_1_y;
-    //         ray_pos.y += step_y as f32;
-    //         side = 1;
-    //     }
-    //     if grid.0[ray_pos.y as usize][ray_pos.x as usize] > 0 {
-    //         hit = 1;
-    //     }
-    // }
-    // println!("hit! x: {} y: {} side: {}", ray_pos.x, ray_pos.y, side);
-    // let mut perp_wall_dist: f32 = 0.;
-    // if side == 0 {
-    //     perp_wall_dist += dist_x - ray_dist_1_x;
-    // } else {
-    //     perp_wall_dist += dist_y - ray_dist_1_y;
-    // };
-    // let line_height: f32 = SCREEN_HEIGHT / perp_wall_dist;
-    // let mut line_start = -(line_height + SCREEN_HEIGHT) / 2.;
-    // if line_start < 0. {
-    //     line_start = 0.
-    // };
-    // let mut line_end = (line_height + SCREEN_HEIGHT) / 2.;
-    // if line_end > SCREEN_HEIGHT {
-    //     line_end = SCREEN_HEIGHT - 1.
-    // };
-
-    // println!("start: {}, end: {}", line_start, line_end);
-    // gz.line_2d(
-    //     Vec2::new(camera_x * SCREEN_WIDTH, line_start),
-    //     Vec2::new(camera_x * SCREEN_WIDTH, line_end),
-    //     Color::WHITE,
-    // )
 }
 
 fn main() {
@@ -456,17 +449,5 @@ fn main() {
 //             vec2(x - offset_x, SCREEN_HEIGHT - offset_y),
 //             Color::BLACK,
 //         )
-//     }
-// }
-
-// fn update_me(me: Query<&Me>, mut query: Query<&mut Transform, With<Me>>) {
-//     let Ok(me) = me.get_single() else {
-//         return;
-//     };
-//
-//     let offset_x = SCREEN_WIDTH / 2.;
-//     let offset_y = SCREEN_HEIGHT / 2.;
-//     for mut transform in &mut query {
-//         transform.translation = Vec3::new(me.position.x - offset_x, me.position.y - offset_y, 1.)
 //     }
 // }
