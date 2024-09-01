@@ -4,10 +4,10 @@ use bevy::{
 };
 
 const FOV: f32 = 66.;
-const SPEED: f32 = 5.;
-const ROTATIONAL_SPEED: f32 = 0.02;
-const SCREEN_WIDTH: f32 = 640.;
-const SCREEN_HEIGHT: f32 = 480.;
+const SPEED: f32 = 2.5;
+const ROTATIONAL_SPEED: f32 = 0.01;
+const SCREEN_WIDTH: f32 = 1920.;
+const SCREEN_HEIGHT: f32 = 1080.;
 const NUM_COLS: usize = 24;
 const NUM_ROWS: usize = 24;
 
@@ -360,6 +360,7 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
         let mut dist_x: f32;
         let mut dist_y: f32;
         let mut hit = 0;
+        let mut wall_type: i32 = 0;
 
         if ray_direction.x < 0. {
             step_x = -1;
@@ -391,6 +392,7 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
             }
             if grid.0[ray_pos.y as usize][ray_pos.x as usize] > 0 {
                 hit = 1;
+                wall_type = grid.0[ray_pos.y as usize][ray_pos.x as usize];
             }
         }
         // println!("hit! x: {} y: {} side: {}", ray_pos.x, ray_pos.y, side);
@@ -410,10 +412,24 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
             line_end = SCREEN_HEIGHT - 1.
         };
         // println!("start: {}, end: {}", line_start, line_end);
+
+        let mut color: Color;
+        match wall_type {
+            1 => color = Color::srgb(255. / 255., 190. / 255., 152. / 255.),
+            2 => color = Color::srgb(240. / 255., 90. / 255., 126. / 255.),
+            3 => color = Color::srgb(18. / 255., 91. / 255., 154. / 255.),
+            4 => color = Color::srgb(11. / 255., 132. / 255., 148. / 255.),
+            _ => color = Color::srgb(0., 0., 0.),
+        }
+
+        if side == 0 {
+            color = color.lighter(0.05);
+        }
+
         gz.line_2d(
             Vec2::new(camera_x * SCREEN_WIDTH, line_start - SCREEN_HEIGHT / 2.),
             Vec2::new(camera_x * SCREEN_WIDTH, line_end - SCREEN_HEIGHT / 2.),
-            Color::WHITE,
+            color,
         )
     }
 }
