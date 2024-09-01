@@ -1,13 +1,12 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    math::vec2,
     prelude::*,
     sprite::MaterialMesh2dBundle,
 };
 
-const SOME_COLOR: Color = Color::srgb(0.99, 0.24, 0.71);
-const SPEED: f32 = 10.;
-const CIRCLE_DIAMETER: f32 = 5.;
+// const SOME_COLOR: Color = Color::srgb(0.99, 0.24, 0.71);
+const SPEED: f32 = 5.;
+// const CIRCLE_DIAMETER: f32 = 5.;
 const SCREEN_WIDTH: f32 = 640.;
 const SCREEN_HEIGHT: f32 = 480.;
 const NUM_COLS: usize = 24;
@@ -153,24 +152,13 @@ impl Me {
     }
 
     fn backward(&mut self, time_delta: f32) {
-        let pos_delta = self.direction.normalize_or_zero() * (SPEED / 2.) * time_delta;
+        let pos_delta = self.direction.normalize_or_zero() * SPEED * time_delta;
         self.position -= pos_delta
     }
 }
 
-fn setup_me(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn setup_me(mut commands: Commands) {
     commands.spawn(Me::new(NUM_COLS as f32 / 2., NUM_ROWS as f32 / 2.));
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(Circle::default()).into(),
-        material: materials.add(SOME_COLOR),
-        transform: Transform::from_translation(Vec3::new(0., 0., 1.))
-            .with_scale(Vec2::splat(CIRCLE_DIAMETER).extend(1.0)),
-        ..default()
-    });
 }
 
 struct FloatStepper {
@@ -198,68 +186,6 @@ fn float_stepper(start: f32, end: f32, step: f32) -> FloatStepper {
         current: start,
         step,
         end,
-    }
-}
-
-fn display_grid(mut gz: Gizmos<Gz>) {
-    let offset_x = SCREEN_WIDTH / 2.;
-    let offset_y = SCREEN_HEIGHT / 2.;
-
-    let step_x = SCREEN_WIDTH / NUM_COLS as f32;
-    let step_y = SCREEN_HEIGHT / NUM_ROWS as f32;
-
-    for y in float_stepper(0., SCREEN_HEIGHT, step_y) {
-        if y == 0. {
-            continue;
-        }
-
-        gz.line_2d(
-            vec2(0. - offset_x, y - offset_y),
-            vec2(SCREEN_WIDTH - offset_x, y - offset_y),
-            Color::BLACK,
-        )
-    }
-    for x in float_stepper(0., SCREEN_WIDTH, step_x) {
-        if x == 0. {
-            continue;
-        }
-
-        gz.line_2d(
-            vec2(x - offset_x, 0. - offset_y),
-            vec2(x - offset_x, SCREEN_HEIGHT - offset_y),
-            Color::BLACK,
-        )
-    }
-}
-
-fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time: Res<Time>) {
-    let Ok(mut me) = me.get_single_mut() else {
-        return;
-    };
-
-    if key.pressed(KeyCode::KeyI) || key.pressed(KeyCode::ArrowUp) {
-        me.forward(time.delta_seconds())
-    }
-    if key.pressed(KeyCode::KeyK) || key.pressed(KeyCode::ArrowDown) {
-        me.backward(time.delta_seconds())
-    }
-    if key.pressed(KeyCode::KeyJ) || key.pressed(KeyCode::ArrowLeft) {
-        me.rotate(3)
-    }
-    if key.pressed(KeyCode::KeyL) || key.pressed(KeyCode::ArrowRight) {
-        me.rotate(-3)
-    }
-}
-
-fn update_me(me: Query<&Me>, mut query: Query<&mut Transform, With<Me>>) {
-    let Ok(me) = me.get_single() else {
-        return;
-    };
-
-    let offset_x = SCREEN_WIDTH / 2.;
-    let offset_y = SCREEN_HEIGHT / 2.;
-    for mut transform in &mut query {
-        transform.translation = Vec3::new(me.position.x - offset_x, me.position.y - offset_y, 1.)
     }
 }
 
@@ -318,6 +244,25 @@ fn update_stats(me: Query<&Me>, mut text_query: Query<&mut Text, With<StatsPane>
     }
 }
 
+fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time: Res<Time>) {
+    let Ok(mut me) = me.get_single_mut() else {
+        return;
+    };
+
+    if key.pressed(KeyCode::KeyI) || key.pressed(KeyCode::ArrowUp) {
+        me.forward(time.delta_seconds())
+    }
+    if key.pressed(KeyCode::KeyK) || key.pressed(KeyCode::ArrowDown) {
+        me.backward(time.delta_seconds())
+    }
+    if key.pressed(KeyCode::KeyJ) || key.pressed(KeyCode::ArrowLeft) {
+        me.rotate(1)
+    }
+    if key.pressed(KeyCode::KeyL) || key.pressed(KeyCode::ArrowRight) {
+        me.rotate(-1)
+    }
+}
+
 fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
     let Ok(me) = me.get_single() else { return };
     for x in float_stepper(0., SCREEN_WIDTH, 1.) {
@@ -353,7 +298,7 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
         let mut side: i32 = 0;
         while hit == 0 {
             if dist_x < dist_y {
-                dist_x += ray_dist_1_y;
+                dist_x += ray_dist_1_x;
                 ray_pos.x += step_x as f32;
                 side = 0;
             } else {
@@ -383,8 +328,8 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
         };
         // println!("start: {}, end: {}", line_start, line_end);
         gz.line_2d(
-            Vec2::new(camera_x * SCREEN_WIDTH, line_start),
-            Vec2::new(camera_x * SCREEN_WIDTH, line_end),
+            Vec2::new(camera_x * SCREEN_WIDTH, line_start - SCREEN_HEIGHT / 2.),
+            Vec2::new(camera_x * SCREEN_WIDTH, line_end - SCREEN_HEIGHT / 2.),
             Color::WHITE,
         )
     }
@@ -466,8 +411,8 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "raycasting 360!".into(),
-                    resolution: (1280., 720.).into(),
+                    title: "Hello, Raycasting".into(),
+                    resolution: (SCREEN_WIDTH, SCREEN_HEIGHT).into(),
                     ..default()
                 }),
                 ..default()
@@ -482,3 +427,46 @@ fn main() {
         .add_systems(Update, (handle_movement, update_stats, cast_rays))
         .run();
 }
+
+// fn display_grid(mut gz: Gizmos<Gz>) {
+//     let offset_x = SCREEN_WIDTH / 2.;
+//     let offset_y = SCREEN_HEIGHT / 2.;
+//
+//     let step_x = SCREEN_WIDTH / NUM_COLS as f32;
+//     let step_y = SCREEN_HEIGHT / NUM_ROWS as f32;
+//
+//     for y in float_stepper(0., SCREEN_HEIGHT, step_y) {
+//         if y == 0. {
+//             continue;
+//         }
+//
+//         gz.line_2d(
+//             vec2(0. - offset_x, y - offset_y),
+//             vec2(SCREEN_WIDTH - offset_x, y - offset_y),
+//             Color::BLACK,
+//         )
+//     }
+//     for x in float_stepper(0., SCREEN_WIDTH, step_x) {
+//         if x == 0. {
+//             continue;
+//         }
+//
+//         gz.line_2d(
+//             vec2(x - offset_x, 0. - offset_y),
+//             vec2(x - offset_x, SCREEN_HEIGHT - offset_y),
+//             Color::BLACK,
+//         )
+//     }
+// }
+
+// fn update_me(me: Query<&Me>, mut query: Query<&mut Transform, With<Me>>) {
+//     let Ok(me) = me.get_single() else {
+//         return;
+//     };
+//
+//     let offset_x = SCREEN_WIDTH / 2.;
+//     let offset_y = SCREEN_HEIGHT / 2.;
+//     for mut transform in &mut query {
+//         transform.translation = Vec3::new(me.position.x - offset_x, me.position.y - offset_y, 1.)
+//     }
+// }
