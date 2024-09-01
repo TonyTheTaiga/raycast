@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
 };
 
+const FOV: f32 = 66.;
 const SPEED: f32 = 5.;
 const ROTATIONAL_SPEED: f32 = 0.02;
 const SCREEN_WIDTH: f32 = 640.;
@@ -109,13 +110,19 @@ struct Me {
     plane: Vec2,
 }
 
+fn plane_from_direction(&dir: &Vec2, fov: f32) -> Vec2 {
+    // fov is in degrees
+    let len_dir = dir.normalize().length();
+    let scale_camera_plane = f32::tan(fov.to_radians() / 2.) * len_dir;
+    dir.perp() * scale_camera_plane
+}
+
 impl Me {
     fn new(x: f32, y: f32) -> Me {
         let position = Vec2::new(x, y);
-        let direction = Vec2::new(0., 1.);
-        let plane = Vec2::new(0.66, 0.);
-        // let fov_l = direction - plane;
-        // let fov_r = direction + plane;
+        let direction = Vec2::new(0., -2.);
+        let plane = plane_from_direction(&direction, FOV);
+        println!("{}", plane);
         Me {
             position,
             direction,
@@ -138,12 +145,17 @@ impl Me {
 
     fn forward(&mut self, time_delta: f32) {
         let pos_delta = self.direction.normalize_or_zero() * SPEED * time_delta;
+        println!("{}", self.position + pos_delta);
         self.position += pos_delta
     }
 
     fn backward(&mut self, time_delta: f32) {
         let pos_delta = self.direction.normalize_or_zero() * SPEED * time_delta;
         self.position -= pos_delta
+    }
+
+    fn check_if_valid_dest(dest: Vec2) -> bool {
+        true
     }
 }
 
@@ -234,7 +246,12 @@ fn update_stats(me: Query<&Me>, mut text_query: Query<&mut Text, With<StatsPane>
     }
 }
 
-fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time: Res<Time>) {
+fn handle_movement(
+    key: Res<ButtonInput<KeyCode>>,
+    mut me: Query<&mut Me>,
+    time: Res<Time>,
+    grid: Res<Grid>,
+) {
     let Ok(mut me) = me.get_single_mut() else {
         return;
     };
@@ -246,10 +263,10 @@ fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time:
         me.backward(time.delta_seconds())
     }
     if key.pressed(KeyCode::KeyJ) || key.pressed(KeyCode::ArrowLeft) {
-        me.rotate(ROTATIONAL_SPEED);
+        me.rotate(-ROTATIONAL_SPEED);
     }
     if key.pressed(KeyCode::KeyL) || key.pressed(KeyCode::ArrowRight) {
-        me.rotate(-ROTATIONAL_SPEED);
+        me.rotate(ROTATIONAL_SPEED);
     }
 }
 
@@ -330,6 +347,8 @@ fn handle_movement(key: Res<ButtonInput<KeyCode>>, mut me: Query<&mut Me>, time:
 fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
     let Ok(me) = me.get_single() else { return };
     for x in float_stepper(0., SCREEN_WIDTH, 1.) {
+        // camera_x is also the point on the camera's plane vector where we want to shoot the
+        // ray through
         let camera_x = ((x * 2.) / SCREEN_WIDTH) - 1.;
         let ray_direction = me.direction + me.plane * camera_x;
         // position of the ray on the grid
