@@ -4,8 +4,8 @@ use bevy::{
 };
 
 const FOV: f32 = 66.;
-const SPEED: f32 = 2.5;
-const ROTATIONAL_SPEED: f32 = 0.01;
+const SPEED: f32 = 10.;
+const ROTATIONAL_SPEED: f32 = 1.;
 const SCREEN_WIDTH: f32 = 1920.;
 const SCREEN_HEIGHT: f32 = 1080.;
 const NUM_COLS: usize = 24;
@@ -120,7 +120,7 @@ fn plane_from_direction(&dir: &Vec2, fov: f32) -> Vec2 {
 impl Me {
     fn new(x: f32, y: f32) -> Me {
         let position = Vec2::new(x, y);
-        let direction = Vec2::new(0., -2.);
+        let direction = Vec2::new(0., -1.);
         let plane = plane_from_direction(&direction, FOV);
         println!("{}", plane);
         Me {
@@ -154,9 +154,9 @@ impl Me {
         self.position -= pos_delta
     }
 
-    fn check_if_valid_dest(dest: Vec2) -> bool {
-        true
-    }
+    // fn check_if_valid_dest(dest: Vec2) -> bool {
+    //     true
+    // }
 }
 
 fn setup_me(mut commands: Commands) {
@@ -263,10 +263,10 @@ fn handle_movement(
         me.backward(time.delta_seconds())
     }
     if key.pressed(KeyCode::KeyJ) || key.pressed(KeyCode::ArrowLeft) {
-        me.rotate(-ROTATIONAL_SPEED);
+        me.rotate(-ROTATIONAL_SPEED * time.delta_seconds());
     }
     if key.pressed(KeyCode::KeyL) || key.pressed(KeyCode::ArrowRight) {
-        me.rotate(ROTATIONAL_SPEED);
+        me.rotate(ROTATIONAL_SPEED * time.delta_seconds());
     }
 }
 
