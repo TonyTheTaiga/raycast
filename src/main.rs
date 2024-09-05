@@ -122,6 +122,8 @@ fn plane_from_direction(&dir: &Vec2, fov: f32) -> Vec2 {
 impl Me {
     fn new(x: f32, y: f32) -> Me {
         let position = Vec2::new(x, y);
+
+        // North means bottom of the inline grid
         let direction = Vec2::new(0., -1.);
         let plane = plane_from_direction(&direction, FOV);
         println!("{}", plane);
@@ -271,79 +273,96 @@ fn handle_movement(
     }
 }
 
-// fn cast_ray() {
-//     let screen_center = SCREEN_WIDTH / 2.;
-//     let camera_x = ((screen_center * 2.) / SCREEN_WIDTH) - 1.;
-//     let ray_direction = me.direction + me.plane * camera_x;
-//     // position of the ray on the grid
-//     let mut ray_pos = Vec2::floor(me.position);
-//     let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
-//     let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
-//     let step_x: i32;
-//     let step_y: i32;
-//     let mut dist_x: f32;
-//     let mut dist_y: f32;
-//     let mut hit = 0;
-//
-//     if ray_direction.x < 0. {
-//         step_x = -1;
-//         // this calculates how far the ray travels when going to the next -column
-//         dist_x = (me.position.x - ray_pos.x) * ray_dist_1_x;
-//     } else {
-//         step_x = 1;
-//         // this calculates how far the ray travels when going to the next +column
-//         dist_x = (ray_pos.x + 1.0 - me.position.x) * ray_dist_1_x;
-//     }
-//     if ray_direction.y < 0. {
-//         step_y = -1;
-//         dist_y = (me.position.y - ray_pos.y) * ray_dist_1_y;
-//     } else {
-//         step_y = 1;
-//         dist_y = (ray_pos.y + 1.0 - me.position.y) * ray_dist_1_y;
-//     }
-//
-//     // println!("{}", grid);
-//     // println!("initial_dist_x: {}", initial_dist_x);
-//     // println!("initial_dist_y: {}", initial_dist_y);
-//     let mut side: i32 = 0;
-//     while hit == 0 {
-//         if dist_x < dist_y {
-//             dist_x += ray_dist_1_y;
-//             ray_pos.x += step_x as f32;
-//             side = 0;
-//         } else {
-//             dist_y += ray_dist_1_y;
-//             ray_pos.y += step_y as f32;
-//             side = 1;
-//         }
-//         if grid.0[ray_pos.y as usize][ray_pos.x as usize] > 0 {
-//             hit = 1;
-//         }
-//     }
-//     println!("hit! x: {} y: {} side: {}", ray_pos.x, ray_pos.y, side);
-//     let mut perp_wall_dist: f32 = 0.;
-//     if side == 0 {
-//         perp_wall_dist += dist_x - ray_dist_1_x;
-//     } else {
-//         perp_wall_dist += dist_y - ray_dist_1_y;
-//     };
-//     let line_height: f32 = SCREEN_HEIGHT / perp_wall_dist;
-//     let mut line_start = -(line_height + SCREEN_HEIGHT) / 2.;
-//     if line_start < 0. {
-//         line_start = 0.
-//     };
-//     let mut line_end = (line_height + SCREEN_HEIGHT) / 2.;
-//     if line_end > SCREEN_HEIGHT {
-//         line_end = SCREEN_HEIGHT - 1.
-//     };
-//
-//     println!("start: {}, end: {}", line_start, line_end);
-//     gz.line_2d(
-//         Vec2::new(camera_x * SCREEN_WIDTH, line_start),
-//         Vec2::new(camera_x * SCREEN_WIDTH, line_end),
-//         Color::WHITE,
-//     )
-// }
+fn cast_ray(screen_x: f32, me: &Me, grid: &Grid) -> (Vec2, Vec2) {
+    // camera_x is also the point on the camera's plane vector where we want to shoot the
+    // ray through
+    let camera_x = ((screen_x * 2.) / SCREEN_WIDTH) - 1.;
+    let ray_direction = me.direction + me.plane * camera_x;
+    // position of the ray on the grid
+    let mut ray_pos = Vec2::floor(me.position);
+    let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
+    let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
+    let step_x: i32;
+    let step_y: i32;
+    let mut dist_x: f32;
+    let mut dist_y: f32;
+    let mut hit = 0;
+    let mut wall_type: i32 = 0;
+
+    if ray_direction.x < 0. {
+        step_x = -1;
+        // this calculates how far the ray travels when going to the next -column
+        dist_x = (me.position.x - ray_pos.x) * ray_dist_1_x;
+    } else {
+        step_x = 1;
+        // this calculates how far the ray travels when going to the next +column
+        dist_x = (ray_pos.x + 1.0 - me.position.x) * ray_dist_1_x;
+    }
+    if ray_direction.y < 0. {
+        step_y = -1;
+        dist_y = (me.position.y - ray_pos.y) * ray_dist_1_y;
+    } else {
+        step_y = 1;
+        dist_y = (ray_pos.y + 1.0 - me.position.y) * ray_dist_1_y;
+    }
+
+    let mut side: i32 = 0;
+    while hit == 0 {
+        if dist_x < dist_y {
+            dist_x += ray_dist_1_x;
+            ray_pos.x += step_x as f32;
+            side = 0;
+        } else {
+            dist_y += ray_dist_1_y;
+            ray_pos.y += step_y as f32;
+            side = 1;
+        }
+        if grid.0[ray_pos.y as usize][ray_pos.x as usize] > 0 {
+            hit = 1;
+            wall_type = grid.0[ray_pos.y as usize][ray_pos.x as usize];
+        }
+    }
+    // println!("hit! x: {} y: {} side: {}", ray_pos.x, ray_pos.y, side);
+    let mut perp_wall_dist: f32 = 0.;
+    if side == 0 {
+        perp_wall_dist += dist_x - ray_dist_1_x;
+    } else {
+        perp_wall_dist += dist_y - ray_dist_1_y;
+    };
+    let line_height: f32 = SCREEN_HEIGHT / perp_wall_dist;
+    let mut line_start = -line_height / 2. + SCREEN_HEIGHT / 2.;
+    if line_start < 0. {
+        line_start = 0.
+    };
+    let mut line_end = line_height / 2. + SCREEN_HEIGHT / 2.;
+    if line_end > SCREEN_HEIGHT {
+        line_end = SCREEN_HEIGHT - 1.
+    };
+    // println!("start: {}, end: {}", line_start, line_end);
+
+    let mut color: Color;
+    match wall_type {
+        1 => color = Color::srgb(255. / 255., 190. / 255., 152. / 255.),
+        2 => color = Color::srgb(240. / 255., 90. / 255., 126. / 255.),
+        3 => color = Color::srgb(18. / 255., 91. / 255., 154. / 255.),
+        4 => color = Color::srgb(11. / 255., 132. / 255., 148. / 255.),
+        _ => color = Color::srgb(0., 0., 0.),
+    }
+
+    if side == 0 {
+        color = color.lighter(0.05);
+    }
+    (
+        Vec2::new(camera_x * SCREEN_WIDTH, line_start - SCREEN_HEIGHT / 2.),
+        Vec2::new(camera_x * SCREEN_WIDTH, line_end - SCREEN_HEIGHT / 2.),
+    )
+
+    // gz.line_2d(
+    //     Vec2::new(camera_x * SCREEN_WIDTH, line_start - SCREEN_HEIGHT / 2.),
+    //     Vec2::new(camera_x * SCREEN_WIDTH, line_end - SCREEN_HEIGHT / 2.),
+    //     color,
+    // )
+}
 
 fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
     let Ok(me) = me.get_single() else { return };
@@ -352,7 +371,7 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
         // ray through
         let camera_x = ((x * 2.) / SCREEN_WIDTH) - 1.;
         let ray_direction = me.direction + me.plane * camera_x;
-        // position of the ray on the grid
+        println!("{}", ray_direction);
         let mut ray_pos = Vec2::floor(me.position);
         let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
         let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
