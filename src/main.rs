@@ -4,7 +4,7 @@ use bevy::{
 };
 
 const FOV: f32 = 66.;
-const SPEED: f32 = 10.;
+const SPEED: f32 = 5.;
 const ROTATIONAL_SPEED: f32 = 1.;
 const SCREEN_WIDTH: f32 = 1920.;
 const SCREEN_HEIGHT: f32 = 1080.;
@@ -111,6 +111,8 @@ struct Me {
 }
 
 fn plane_from_direction(&dir: &Vec2, fov: f32) -> Vec2 {
+    // calculates the plane vector given a direction vector and the target field of view
+
     // fov is in degrees
     let len_dir = dir.normalize().length();
     let scale_camera_plane = f32::tan(fov.to_radians() / 2.) * len_dir;
@@ -145,7 +147,6 @@ impl Me {
 
     fn forward(&mut self, time_delta: f32) {
         let pos_delta = self.direction.normalize_or_zero() * SPEED * time_delta;
-        println!("{}", self.position + pos_delta);
         self.position += pos_delta
     }
 
