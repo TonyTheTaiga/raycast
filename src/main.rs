@@ -110,10 +110,28 @@ struct Me {
     plane: Vec2,
 }
 
-fn plane_from_direction(&dir: &Vec2, fov: f32) -> Vec2 {
-    // calculates the plane vector given a direction vector and the target field of view
-
-    // fov is in degrees
+/// Calculates the plane vector given a direction vector and the target field of view.
+///
+/// This function computes a plane vector perpendicular to the given direction vector,
+/// scaled based on the specified field of view.
+///
+/// # Arguments
+///
+/// * `dir` - A reference to a 2D vector representing the direction.
+/// * `fov` - The field of view in degrees.
+///
+/// # Returns
+///
+/// A `Vec2` representing the calculated plane vector.
+///
+/// # Examples
+///
+/// ```
+/// let direction = Vec2::new(1.0, 0.0);
+/// let fov = 60.0;
+/// let plane = plane_from_direction(&direction, fov);
+/// ```
+fn plane_from_direction(dir: &Vec2, fov: f32) -> Vec2 {
     let len_dir = dir.normalize().length();
     let scale_camera_plane = f32::tan(fov.to_radians() / 2.) * len_dir;
     dir.perp() * scale_camera_plane
@@ -371,7 +389,7 @@ fn cast_rays(me: Query<&Me>, grid: Res<Grid>, mut gz: Gizmos<Gz>) {
         // ray through
         let camera_x = ((x * 2.) / SCREEN_WIDTH) - 1.;
         let ray_direction = me.direction + me.plane * camera_x;
-        println!("{}", ray_direction);
+        // println!("{}", ray_direction);
         let mut ray_pos = Vec2::floor(me.position);
         let ray_dist_1_x = f32::abs(ray_direction.length() / ray_direction.x);
         let ray_dist_1_y = f32::abs(ray_direction.length() / ray_direction.y);
@@ -475,34 +493,3 @@ fn main() {
         .add_systems(Update, (handle_movement, update_stats, cast_rays))
         .run();
 }
-
-// fn display_grid(mut gz: Gizmos<Gz>) {
-//     let offset_x = SCREEN_WIDTH / 2.;
-//     let offset_y = SCREEN_HEIGHT / 2.;
-//
-//     let step_x = SCREEN_WIDTH / NUM_COLS as f32;
-//     let step_y = SCREEN_HEIGHT / NUM_ROWS as f32;
-//
-//     for y in float_stepper(0., SCREEN_HEIGHT, step_y) {
-//         if y == 0. {
-//             continue;
-//         }
-//
-//         gz.line_2d(
-//             vec2(0. - offset_x, y - offset_y),
-//             vec2(SCREEN_WIDTH - offset_x, y - offset_y),
-//             Color::BLACK,
-//         )
-//     }
-//     for x in float_stepper(0., SCREEN_WIDTH, step_x) {
-//         if x == 0. {
-//             continue;
-//         }
-//
-//         gz.line_2d(
-//             vec2(x - offset_x, 0. - offset_y),
-//             vec2(x - offset_x, SCREEN_HEIGHT - offset_y),
-//             Color::BLACK,
-//         )
-//     }
-// }
